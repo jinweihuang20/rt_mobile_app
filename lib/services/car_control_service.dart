@@ -32,18 +32,18 @@ class CarControlService {
 
     // 防抖動檢查
     final now = DateTime.now();
-    if (_lastCommandTime != null && now.difference(_lastCommandTime!) < _debounceInterval) {
-      print('命令被防抖動機制攔截');
-      return;
-    }
+    // if (_lastCommandTime != null && now.difference(_lastCommandTime!) < _debounceInterval) {
+    //   print('命令被防抖動機制攔截');
+    //   return;
+    // }
     _lastCommandTime = now;
 
     // 檢查命令是否重複
     final commandKey = '$endpoint${jsonEncode(data)}';
-    if (commandKey == _lastCommand) {
-      print('重複命令被攔截');
-      return;
-    }
+    // if (commandKey == _lastCommand) {
+    //   print('重複命令被攔截');
+    //   return;
+    // }
     _lastCommand = commandKey;
 
     try {

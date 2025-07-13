@@ -239,12 +239,12 @@ class _RCControllerPageState extends State<RCControllerPage> with TickerProvider
             ),
             Positioned(
               left: 20,
-              bottom: 20,
+              bottom: 10,
               child: _buildMovementController(),
             ),
             Positioned(
               right: 20,
-              bottom: 20,
+              bottom: 10,
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
@@ -329,7 +329,7 @@ class _RCControllerPageState extends State<RCControllerPage> with TickerProvider
           animation: _entranceAnimation,
           builder: (context, child) {
             return Transform.translate(
-              offset: Offset(0, 100 * (1 - _entranceAnimation.value)), // 減少初始偏移
+              offset: Offset(0, 60 * (1 - _entranceAnimation.value)), // 減少初始偏移
               child: Opacity(
                 opacity: _entranceAnimation.value.clamp(0.0, 1.0),
                 child: ValueListenableBuilder<bool>(
@@ -481,7 +481,7 @@ class _RCControllerPageState extends State<RCControllerPage> with TickerProvider
       },
       child: Container(
         width: 120,
-        height: 160, // 再次減少高度
+        height: 180, // 再次減少高度
         decoration: BoxDecoration(
           color: const Color(0xFF1E1E1E).withOpacity(0.3),
           borderRadius: BorderRadius.circular(60),
@@ -501,7 +501,7 @@ class _RCControllerPageState extends State<RCControllerPage> with TickerProvider
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             _buildControlButton('上', Icons.arrow_upward, false),
-            const SizedBox(height: 12), // 再次縮小間距
+            const SizedBox(height: 15), // 再次縮小間距
             _buildControlButton('下', Icons.arrow_downward, false),
           ],
         ),
