@@ -55,6 +55,14 @@ class _RCControllerPageState extends State<RCControllerPage> with TickerProvider
   final Map<String, ValueNotifier<bool>> _buttonStates = {};
   final Map<String, AnimationController> _scaleControllers = {};
 
+  // 車子入場動畫控制器
+  late final AnimationController _entranceController;
+  late final Animation<double> _entranceAnimation;
+
+  // 控制按鈕淡入動畫控制器
+  late final AnimationController _controlsController;
+  late final Animation<double> _controlsAnimation;
+
   @override
   void initState() {
     super.initState();
@@ -65,6 +73,38 @@ class _RCControllerPageState extends State<RCControllerPage> with TickerProvider
         duration: const Duration(milliseconds: 100),
       );
     }
+
+    // 初始化入場動畫
+    _entranceController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 800),
+    );
+
+    _entranceAnimation = CurvedAnimation(
+      parent: _entranceController,
+      curve: Curves.easeOutBack,
+    );
+
+    // 初始化控制按鈕動畫
+    _controlsController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 600),
+    );
+
+    _controlsAnimation = CurvedAnimation(
+      parent: _controlsController,
+      curve: Curves.easeOut,
+    );
+
+    // 延遲1秒後開始入場動畫
+    Future.delayed(const Duration(milliseconds: 1000), () {
+      _entranceController.forward().then((_) {
+        // 車子動畫完成後，開始控制按鈕動畫
+        Future.delayed(const Duration(milliseconds: 200), () {
+          _controlsController.forward();
+        });
+      });
+    });
   }
 
   @override
@@ -72,6 +112,8 @@ class _RCControllerPageState extends State<RCControllerPage> with TickerProvider
     _isHeadlightOn.dispose();
     _steeringDirection.dispose();
     _carService.dispose();
+    _entranceController.dispose();
+    _controlsController.dispose();
     for (var controller in _scaleControllers.values) {
       controller.dispose();
     }
@@ -192,39 +234,50 @@ class _RCControllerPageState extends State<RCControllerPage> with TickerProvider
   }
 
   Widget _buildCarVisualization() {
-    return ValueListenableBuilder<bool>(
-      valueListenable: _isHeadlightOn,
-      builder: (context, isHeadlightOn, _) {
-        return ValueListenableBuilder<String>(
-          valueListenable: _steeringDirection,
-          builder: (context, steeringDirection, _) {
-            return Container(
-              width: 200,
-              height: 300,
-              decoration: BoxDecoration(
-                color: const Color.fromARGB(255, 36, 36, 36),
-                borderRadius: BorderRadius.circular(20),
-                border: Border.all(
-                  color: const Color.fromARGB(255, 45, 45, 45),
-                  width: 2,
-                ),
-                boxShadow: [
-                  BoxShadow(
-                    color: const Color.fromARGB(255, 31, 31, 31).withOpacity(0.3),
-                    blurRadius: 10,
-                    offset: const Offset(0, 4),
-                  ),
-                ],
-              ),
-              padding: const EdgeInsets.all(2),
-              child: CustomPaint(
-                painter: CarPainter(
-                  isHeadlightOn: isHeadlightOn,
-                  steeringDirection: steeringDirection,
-                ),
-              ),
-            );
-          },
+    return AnimatedBuilder(
+      animation: _entranceAnimation,
+      builder: (context, child) {
+        return Transform.translate(
+          offset: Offset(0, 200 * (1 - _entranceAnimation.value)),
+          child: Opacity(
+            opacity: _entranceAnimation.value.clamp(0.0, 1.0),
+            child: ValueListenableBuilder<bool>(
+              valueListenable: _isHeadlightOn,
+              builder: (context, isHeadlightOn, _) {
+                return ValueListenableBuilder<String>(
+                  valueListenable: _steeringDirection,
+                  builder: (context, steeringDirection, _) {
+                    return Container(
+                      width: 200,
+                      height: 300,
+                      decoration: BoxDecoration(
+                        color: const Color.fromARGB(255, 36, 36, 36),
+                        borderRadius: BorderRadius.circular(20),
+                        border: Border.all(
+                          color: const Color.fromARGB(255, 45, 45, 45),
+                          width: 2,
+                        ),
+                        boxShadow: [
+                          BoxShadow(
+                            color: const Color.fromARGB(255, 31, 31, 31).withOpacity(0.3),
+                            blurRadius: 10,
+                            offset: const Offset(0, 4),
+                          ),
+                        ],
+                      ),
+                      padding: const EdgeInsets.all(2),
+                      child: CustomPaint(
+                        painter: CarPainter(
+                          isHeadlightOn: isHeadlightOn,
+                          steeringDirection: steeringDirection,
+                        ),
+                      ),
+                    );
+                  },
+                );
+              },
+            ),
+          ),
         );
       },
     );
@@ -322,109 +375,145 @@ class _RCControllerPageState extends State<RCControllerPage> with TickerProvider
   }
 
   Widget _buildMovementController() {
-    return Container(
-      width: 120,
-      height: 200,
-      decoration: BoxDecoration(
-        color: const Color(0xFF1E1E1E).withOpacity(0.3),
-        borderRadius: BorderRadius.circular(60),
-        border: Border.all(
-          color: const Color(0xFF2D2D2D),
-          width: 1.5,
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.2),
-            blurRadius: 8,
-            offset: const Offset(0, 4),
+    return AnimatedBuilder(
+      animation: _controlsAnimation,
+      builder: (context, child) {
+        return Opacity(
+          opacity: _controlsAnimation.value.clamp(0.0, 1.0),
+          child: Transform.translate(
+            offset: Offset(-20 * (1 - _controlsAnimation.value), 0),
+            child: child!,
           ),
-        ],
-      ),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          _buildControlButton('上', Icons.arrow_upward, false),
-          const SizedBox(height: 20),
-          _buildControlButton('下', Icons.arrow_downward, false),
-        ],
+        );
+      },
+      child: Container(
+        width: 120,
+        height: 200,
+        decoration: BoxDecoration(
+          color: const Color(0xFF1E1E1E).withOpacity(0.3),
+          borderRadius: BorderRadius.circular(60),
+          border: Border.all(
+            color: const Color(0xFF2D2D2D),
+            width: 1.5,
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.2),
+              blurRadius: 8,
+              offset: const Offset(0, 4),
+            ),
+          ],
+        ),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            _buildControlButton('上', Icons.arrow_upward, false),
+            const SizedBox(height: 20),
+            _buildControlButton('下', Icons.arrow_downward, false),
+          ],
+        ),
       ),
     );
   }
 
   Widget _buildTurnController() {
-    return Container(
-      width: 200,
-      height: 120,
-      decoration: BoxDecoration(
-        color: const Color(0xFF1E1E1E).withOpacity(0.3),
-        borderRadius: BorderRadius.circular(60),
-        border: Border.all(
-          color: const Color(0xFF2D2D2D),
-          width: 1.5,
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.2),
-            blurRadius: 8,
-            offset: const Offset(0, 4),
+    return AnimatedBuilder(
+      animation: _controlsAnimation,
+      builder: (context, child) {
+        return Opacity(
+          opacity: _controlsAnimation.value.clamp(0.0, 1.0),
+          child: Transform.translate(
+            offset: Offset(20 * (1 - _controlsAnimation.value), 0),
+            child: child!,
           ),
-        ],
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          _buildControlButton('左', Icons.arrow_back, true),
-          const SizedBox(width: 20),
-          _buildControlButton('右', Icons.arrow_forward, true),
-        ],
+        );
+      },
+      child: Container(
+        width: 200,
+        height: 120,
+        decoration: BoxDecoration(
+          color: const Color(0xFF1E1E1E).withOpacity(0.3),
+          borderRadius: BorderRadius.circular(60),
+          border: Border.all(
+            color: const Color(0xFF2D2D2D),
+            width: 1.5,
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.2),
+              blurRadius: 8,
+              offset: const Offset(0, 4),
+            ),
+          ],
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            _buildControlButton('左', Icons.arrow_back, true),
+            const SizedBox(width: 20),
+            _buildControlButton('右', Icons.arrow_forward, true),
+          ],
+        ),
       ),
     );
   }
 
   Widget _buildHeadlightControl() {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      decoration: BoxDecoration(
-        color: const Color(0xFF1E1E1E).withOpacity(0.3),
-        borderRadius: BorderRadius.circular(30),
-        border: Border.all(
-          color: const Color(0xFF2D2D2D),
-          width: 1.5,
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.2),
-            blurRadius: 8,
-            offset: const Offset(0, 4),
+    return AnimatedBuilder(
+      animation: _controlsAnimation,
+      builder: (context, child) {
+        return Opacity(
+          opacity: _controlsAnimation.value.clamp(0.0, 1.0),
+          child: Transform.translate(
+            offset: Offset(20 * (1 - _controlsAnimation.value), 0),
+            child: child!,
           ),
-        ],
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          ValueListenableBuilder<bool>(
-            valueListenable: _isHeadlightOn,
-            builder: (context, isOn, _) => AnimatedContainer(
-              duration: const Duration(milliseconds: 200),
-              child: Icon(
-                Icons.lightbulb,
-                color: isOn ? Colors.amber : Colors.grey.shade600,
-                size: 24,
+        );
+      },
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        decoration: BoxDecoration(
+          color: const Color(0xFF1E1E1E).withOpacity(0.3),
+          borderRadius: BorderRadius.circular(30),
+          border: Border.all(
+            color: const Color(0xFF2D2D2D),
+            width: 1.5,
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.2),
+              blurRadius: 8,
+              offset: const Offset(0, 4),
+            ),
+          ],
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ValueListenableBuilder<bool>(
+              valueListenable: _isHeadlightOn,
+              builder: (context, isOn, _) => AnimatedContainer(
+                duration: const Duration(milliseconds: 200),
+                child: Icon(
+                  Icons.lightbulb,
+                  color: isOn ? Colors.amber : Colors.grey.shade600,
+                  size: 24,
+                ),
               ),
             ),
-          ),
-          const SizedBox(width: 8),
-          ValueListenableBuilder<bool>(
-            valueListenable: _isHeadlightOn,
-            builder: (context, isOn, _) => Switch(
-              value: isOn,
-              onChanged: (_) {
-                HapticFeedback.lightImpact();
-                _toggleHeadlight();
-              },
+            const SizedBox(width: 8),
+            ValueListenableBuilder<bool>(
+              valueListenable: _isHeadlightOn,
+              builder: (context, isOn, _) => Switch(
+                value: isOn,
+                onChanged: (_) {
+                  HapticFeedback.lightImpact();
+                  _toggleHeadlight();
+                },
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
