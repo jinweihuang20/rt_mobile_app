@@ -52,6 +52,7 @@ class _RCControllerPageState extends State<RCControllerPage> with TickerProvider
   final _carService = CarControlService();
   final _isHeadlightOn = ValueNotifier<bool>(false);
   final _steeringDirection = ValueNotifier<String>('無');
+  final _movementDirection = ValueNotifier<String>('停止');
   final Map<String, ValueNotifier<bool>> _buttonStates = {};
   final Map<String, AnimationController> _scaleControllers = {};
 
@@ -62,6 +63,10 @@ class _RCControllerPageState extends State<RCControllerPage> with TickerProvider
   // 控制按鈕淡入動畫控制器
   late final AnimationController _controlsController;
   late final Animation<double> _controlsAnimation;
+
+  // 方向指示器動畫控制器
+  late final AnimationController _directionIndicatorController;
+  late final Animation<double> _directionIndicatorAnimation;
 
   @override
   void initState() {
@@ -96,6 +101,17 @@ class _RCControllerPageState extends State<RCControllerPage> with TickerProvider
       curve: Curves.easeOut,
     );
 
+    // 初始化方向指示器動畫
+    _directionIndicatorController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 300),
+    );
+
+    _directionIndicatorAnimation = CurvedAnimation(
+      parent: _directionIndicatorController,
+      curve: Curves.easeInOut,
+    );
+
     // 延遲1秒後開始入場動畫
     Future.delayed(const Duration(milliseconds: 1000), () {
       _entranceController.forward().then((_) {
@@ -111,9 +127,11 @@ class _RCControllerPageState extends State<RCControllerPage> with TickerProvider
   void dispose() {
     _isHeadlightOn.dispose();
     _steeringDirection.dispose();
+    _movementDirection.dispose();
     _carService.dispose();
     _entranceController.dispose();
     _controlsController.dispose();
+    _directionIndicatorController.dispose();
     for (var controller in _scaleControllers.values) {
       controller.dispose();
     }
@@ -133,8 +151,12 @@ class _RCControllerPageState extends State<RCControllerPage> with TickerProvider
   void _handleDirectionChange(String direction) {
     switch (direction) {
       case '上':
+        _movementDirection.value = '前進';
+        _directionIndicatorController.forward();
         _carService.moveForward();
       case '下':
+        _movementDirection.value = '後退';
+        _directionIndicatorController.forward();
         _carService.moveBackward();
       case '左':
         _steeringDirection.value = '左';
@@ -143,6 +165,8 @@ class _RCControllerPageState extends State<RCControllerPage> with TickerProvider
         _steeringDirection.value = '右';
         _carService.turnRight();
       case '停止':
+        _movementDirection.value = '停止';
+        _directionIndicatorController.reverse();
         _carService.stop();
       case '停止轉向':
         _steeringDirection.value = '無';
@@ -200,86 +224,155 @@ class _RCControllerPageState extends State<RCControllerPage> with TickerProvider
           const SizedBox(width: 8),
         ],
       ),
-      body: Stack(
-        children: [
-          // 背景網格
-          CustomPaint(
-            size: Size.infinite,
-            painter: GridPainter(),
-          ),
-          // 車子視覺化
-          Center(
-            child: _buildCarVisualization(),
-          ),
-          Positioned(
-            left: 20,
-            bottom: 20,
-            child: _buildMovementController(),
-          ),
-          Positioned(
-            right: 20,
-            bottom: 20,
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                _buildHeadlightControl(),
-                const SizedBox(height: 20),
-                _buildTurnController(),
-              ],
+      body: SafeArea(
+        bottom: true,
+        child: Stack(
+          children: [
+            // 背景網格
+            CustomPaint(
+              size: Size.infinite,
+              painter: GridPainter(),
             ),
-          ),
-        ],
+            // 車子視覺化
+            Center(
+              child: _buildCarVisualization(),
+            ),
+            Positioned(
+              left: 20,
+              bottom: 20,
+              child: _buildMovementController(),
+            ),
+            Positioned(
+              right: 20,
+              bottom: 20,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  _buildHeadlightControl(),
+                  const SizedBox(height: 16), // 稍微縮小間距
+                  _buildTurnController(),
+                ],
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
 
   Widget _buildCarVisualization() {
-    return AnimatedBuilder(
-      animation: _entranceAnimation,
-      builder: (context, child) {
-        return Transform.translate(
-          offset: Offset(0, 200 * (1 - _entranceAnimation.value)),
-          child: Opacity(
-            opacity: _entranceAnimation.value.clamp(0.0, 1.0),
-            child: ValueListenableBuilder<bool>(
-              valueListenable: _isHeadlightOn,
-              builder: (context, isHeadlightOn, _) {
-                return ValueListenableBuilder<String>(
-                  valueListenable: _steeringDirection,
-                  builder: (context, steeringDirection, _) {
-                    return Container(
-                      width: 200,
-                      height: 300,
-                      decoration: BoxDecoration(
-                        color: const Color.fromARGB(255, 36, 36, 36),
-                        borderRadius: BorderRadius.circular(20),
-                        border: Border.all(
-                          color: const Color.fromARGB(255, 45, 45, 45),
-                          width: 2,
+    return Column(
+      mainAxisSize: MainAxisSize.min, // 確保 Column 只取所需的最小空間
+      children: [
+        // 方向指示器
+        ValueListenableBuilder<String>(
+          valueListenable: _movementDirection,
+          builder: (context, direction, _) {
+            return AnimatedBuilder(
+              animation: _directionIndicatorAnimation,
+              builder: (context, child) {
+                return Opacity(
+                  opacity: _directionIndicatorAnimation.value.clamp(0.0, 1.0),
+                  child: Container(
+                    margin: const EdgeInsets.only(bottom: 12), // 減少邊距
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6), // 減少內邊距
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF1E1E1E).withOpacity(0.8),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(
+                        color: const Color(0xFF2D2D2D),
+                        width: 1.5,
+                      ),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          direction == '前進' ? Icons.arrow_upward : Icons.arrow_downward,
+                          color: Colors.blue,
+                          size: 18, // 縮小圖標
                         ),
-                        boxShadow: [
-                          BoxShadow(
-                            color: const Color.fromARGB(255, 31, 31, 31).withOpacity(0.3),
-                            blurRadius: 10,
-                            offset: const Offset(0, 4),
+                        const SizedBox(width: 6), // 減少間距
+                        Text(
+                          direction,
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 13, // 縮小字體
+                            fontWeight: FontWeight.w600,
+                            letterSpacing: 1,
                           ),
-                        ],
-                      ),
-                      padding: const EdgeInsets.all(2),
-                      child: CustomPaint(
-                        painter: CarPainter(
-                          isHeadlightOn: isHeadlightOn,
-                          steeringDirection: steeringDirection,
                         ),
-                      ),
-                    );
-                  },
+                        const SizedBox(width: 6), // 減少間距
+                        Container(
+                          width: 32, // 縮小進度條
+                          height: 3,
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(2),
+                            gradient: LinearGradient(
+                              colors: [
+                                Colors.blue.shade400,
+                                Colors.blue.shade200,
+                              ],
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
                 );
               },
-            ),
-          ),
-        );
-      },
+            );
+          },
+        ),
+        // 車子視覺化
+        AnimatedBuilder(
+          animation: _entranceAnimation,
+          builder: (context, child) {
+            return Transform.translate(
+              offset: Offset(0, 100 * (1 - _entranceAnimation.value)), // 減少初始偏移
+              child: Opacity(
+                opacity: _entranceAnimation.value.clamp(0.0, 1.0),
+                child: ValueListenableBuilder<bool>(
+                  valueListenable: _isHeadlightOn,
+                  builder: (context, isHeadlightOn, _) {
+                    return ValueListenableBuilder<String>(
+                      valueListenable: _steeringDirection,
+                      builder: (context, steeringDirection, _) {
+                        return Container(
+                          width: 180, // 稍微縮小車子容器
+                          height: 260,
+                          decoration: BoxDecoration(
+                            color: const Color.fromARGB(255, 36, 36, 36),
+                            borderRadius: BorderRadius.circular(20),
+                            border: Border.all(
+                              color: const Color.fromARGB(255, 45, 45, 45),
+                              width: 2,
+                            ),
+                            boxShadow: [
+                              BoxShadow(
+                                color: const Color.fromARGB(255, 31, 31, 31).withOpacity(0.3),
+                                blurRadius: 10,
+                                offset: const Offset(0, 4),
+                              ),
+                            ],
+                          ),
+                          padding: const EdgeInsets.all(1),
+                          child: CustomPaint(
+                            painter: CarPainter(
+                              isHeadlightOn: isHeadlightOn,
+                              steeringDirection: steeringDirection,
+                            ),
+                          ),
+                        );
+                      },
+                    );
+                  },
+                ),
+              ),
+            );
+          },
+        ),
+      ],
     );
   }
 
@@ -321,11 +414,11 @@ class _RCControllerPageState extends State<RCControllerPage> with TickerProvider
               child: child,
             ),
             child: Container(
-              width: 60,
-              height: 60,
+              width: 50, // 稍微縮小按鈕尺寸
+              height: 50,
               decoration: BoxDecoration(
                 color: isPressed ? const Color(0xFF1E88E5) : const Color(0xFF2196F3),
-                borderRadius: BorderRadius.circular(30),
+                borderRadius: BorderRadius.circular(25),
                 border: Border.all(
                   color: isPressed ? const Color(0xFF1565C0) : const Color(0xFF42A5F5),
                   width: 1.5,
@@ -346,7 +439,7 @@ class _RCControllerPageState extends State<RCControllerPage> with TickerProvider
                     if (isPressed)
                       Container(
                         decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(30),
+                          borderRadius: BorderRadius.circular(25),
                           gradient: RadialGradient(
                             colors: [
                               Colors.white.withOpacity(0.1),
@@ -361,7 +454,7 @@ class _RCControllerPageState extends State<RCControllerPage> with TickerProvider
                       child: Icon(
                         icon,
                         color: Colors.white,
-                        size: 32,
+                        size: 28, // 稍微縮小圖標尺寸
                       ),
                     ),
                   ],
@@ -388,7 +481,7 @@ class _RCControllerPageState extends State<RCControllerPage> with TickerProvider
       },
       child: Container(
         width: 120,
-        height: 200,
+        height: 160, // 再次減少高度
         decoration: BoxDecoration(
           color: const Color(0xFF1E1E1E).withOpacity(0.3),
           borderRadius: BorderRadius.circular(60),
@@ -408,7 +501,7 @@ class _RCControllerPageState extends State<RCControllerPage> with TickerProvider
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             _buildControlButton('上', Icons.arrow_upward, false),
-            const SizedBox(height: 20),
+            const SizedBox(height: 12), // 再次縮小間距
             _buildControlButton('下', Icons.arrow_downward, false),
           ],
         ),
@@ -430,7 +523,7 @@ class _RCControllerPageState extends State<RCControllerPage> with TickerProvider
       },
       child: Container(
         width: 200,
-        height: 120,
+        height: 100, // 減少高度
         decoration: BoxDecoration(
           color: const Color(0xFF1E1E1E).withOpacity(0.3),
           borderRadius: BorderRadius.circular(60),
@@ -450,7 +543,7 @@ class _RCControllerPageState extends State<RCControllerPage> with TickerProvider
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             _buildControlButton('左', Icons.arrow_back, true),
-            const SizedBox(width: 20),
+            const SizedBox(width: 16),
             _buildControlButton('右', Icons.arrow_forward, true),
           ],
         ),
