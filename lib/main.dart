@@ -142,8 +142,14 @@ class _RCControllerPageState extends State<RCControllerPage> with TickerProvider
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('RC Car Controller'),
-        backgroundColor: Theme.of(context).colorScheme.inversePrimary,
+        title: const Text(
+          'RC Car Controller',
+          style: TextStyle(
+            fontWeight: FontWeight.w600,
+            letterSpacing: 0.5,
+          ),
+        ),
+        backgroundColor: Theme.of(context).colorScheme.surface,
         actions: [
           IconButton(
             icon: const Icon(Icons.settings),
@@ -154,7 +160,12 @@ class _RCControllerPageState extends State<RCControllerPage> with TickerProvider
       ),
       body: Stack(
         children: [
-          // 添加車子視覺化
+          // 背景網格
+          CustomPaint(
+            size: Size.infinite,
+            painter: GridPainter(),
+          ),
+          // 車子視覺化
           Center(
             child: _buildCarVisualization(),
           ),
@@ -190,6 +201,22 @@ class _RCControllerPageState extends State<RCControllerPage> with TickerProvider
             return Container(
               width: 200,
               height: 300,
+              decoration: BoxDecoration(
+                color: const Color.fromARGB(255, 36, 36, 36),
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(
+                  color: const Color.fromARGB(255, 45, 45, 45),
+                  width: 2,
+                ),
+                boxShadow: [
+                  BoxShadow(
+                    color: const Color.fromARGB(255, 31, 31, 31).withOpacity(0.3),
+                    blurRadius: 10,
+                    offset: const Offset(0, 4),
+                  ),
+                ],
+              ),
+              padding: const EdgeInsets.all(2),
               child: CustomPaint(
                 painter: CarPainter(
                   isHeadlightOn: isHeadlightOn,
@@ -200,50 +227,6 @@ class _RCControllerPageState extends State<RCControllerPage> with TickerProvider
           },
         );
       },
-    );
-  }
-
-  Widget _buildHeadlightControl() {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      decoration: BoxDecoration(
-        color: const Color(0xFF1E1E1E).withOpacity(0.3),
-        borderRadius: BorderRadius.circular(30),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.2),
-            blurRadius: 8,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          ValueListenableBuilder<bool>(
-            valueListenable: _isHeadlightOn,
-            builder: (context, isOn, _) => AnimatedContainer(
-              duration: const Duration(milliseconds: 200),
-              child: Icon(
-                Icons.lightbulb,
-                color: isOn ? Colors.amber : Colors.grey.shade600,
-                size: 24,
-              ),
-            ),
-          ),
-          const SizedBox(width: 8),
-          ValueListenableBuilder<bool>(
-            valueListenable: _isHeadlightOn,
-            builder: (context, isOn, _) => Switch(
-              value: isOn,
-              onChanged: (_) {
-                HapticFeedback.lightImpact();
-                _toggleHeadlight();
-              },
-            ),
-          ),
-        ],
-      ),
     );
   }
 
@@ -288,10 +271,12 @@ class _RCControllerPageState extends State<RCControllerPage> with TickerProvider
               width: 60,
               height: 60,
               decoration: BoxDecoration(
-                color: isPressed
-                    ? const Color(0xFF1E88E5) // 深藍色
-                    : const Color(0xFF2196F3), // 藍色
+                color: isPressed ? const Color(0xFF1E88E5) : const Color(0xFF2196F3),
                 borderRadius: BorderRadius.circular(30),
+                border: Border.all(
+                  color: isPressed ? const Color(0xFF1565C0) : const Color(0xFF42A5F5),
+                  width: 1.5,
+                ),
                 boxShadow: [
                   BoxShadow(
                     color: const Color(0xFF1565C0).withOpacity(isPressed ? 0.3 : 0.5),
@@ -303,15 +288,30 @@ class _RCControllerPageState extends State<RCControllerPage> with TickerProvider
               ),
               child: Material(
                 color: Colors.transparent,
-                child: InkWell(
-                  borderRadius: BorderRadius.circular(30),
-                  splashColor: Colors.white.withOpacity(0.2),
-                  highlightColor: Colors.white.withOpacity(0.1),
-                  child: Icon(
-                    icon,
-                    color: Colors.white,
-                    size: 32,
-                  ),
+                child: Stack(
+                  children: [
+                    if (isPressed)
+                      Container(
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(30),
+                          gradient: RadialGradient(
+                            colors: [
+                              Colors.white.withOpacity(0.1),
+                              Colors.transparent,
+                            ],
+                            center: Alignment.center,
+                            radius: 0.8,
+                          ),
+                        ),
+                      ),
+                    Center(
+                      child: Icon(
+                        icon,
+                        color: Colors.white,
+                        size: 32,
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ),
@@ -328,6 +328,10 @@ class _RCControllerPageState extends State<RCControllerPage> with TickerProvider
       decoration: BoxDecoration(
         color: const Color(0xFF1E1E1E).withOpacity(0.3),
         borderRadius: BorderRadius.circular(60),
+        border: Border.all(
+          color: const Color(0xFF2D2D2D),
+          width: 1.5,
+        ),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withOpacity(0.2),
@@ -354,6 +358,10 @@ class _RCControllerPageState extends State<RCControllerPage> with TickerProvider
       decoration: BoxDecoration(
         color: const Color(0xFF1E1E1E).withOpacity(0.3),
         borderRadius: BorderRadius.circular(60),
+        border: Border.all(
+          color: const Color(0xFF2D2D2D),
+          width: 1.5,
+        ),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withOpacity(0.2),
@@ -372,6 +380,86 @@ class _RCControllerPageState extends State<RCControllerPage> with TickerProvider
       ),
     );
   }
+
+  Widget _buildHeadlightControl() {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      decoration: BoxDecoration(
+        color: const Color(0xFF1E1E1E).withOpacity(0.3),
+        borderRadius: BorderRadius.circular(30),
+        border: Border.all(
+          color: const Color(0xFF2D2D2D),
+          width: 1.5,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.2),
+            blurRadius: 8,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          ValueListenableBuilder<bool>(
+            valueListenable: _isHeadlightOn,
+            builder: (context, isOn, _) => AnimatedContainer(
+              duration: const Duration(milliseconds: 200),
+              child: Icon(
+                Icons.lightbulb,
+                color: isOn ? Colors.amber : Colors.grey.shade600,
+                size: 24,
+              ),
+            ),
+          ),
+          const SizedBox(width: 8),
+          ValueListenableBuilder<bool>(
+            valueListenable: _isHeadlightOn,
+            builder: (context, isOn, _) => Switch(
+              value: isOn,
+              onChanged: (_) {
+                HapticFeedback.lightImpact();
+                _toggleHeadlight();
+              },
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class GridPainter extends CustomPainter {
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = const Color(0xFF2D2D2D).withOpacity(0.2)
+      ..strokeWidth = 1;
+
+    const spacing = 30.0;
+
+    // 繪製垂直線
+    for (double x = 0; x < size.width; x += spacing) {
+      canvas.drawLine(
+        Offset(x, 0),
+        Offset(x, size.height),
+        paint,
+      );
+    }
+
+    // 繪製水平線
+    for (double y = 0; y < size.height; y += spacing) {
+      canvas.drawLine(
+        Offset(0, y),
+        Offset(size.width, y),
+        paint,
+      );
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }
 
 class CarPainter extends CustomPainter {
