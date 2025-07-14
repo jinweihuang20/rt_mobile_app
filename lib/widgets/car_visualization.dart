@@ -237,22 +237,67 @@ class CarPainter extends CustomPainter {
     );
 
     if (isHeadlightOn) {
-      // 車頭燈光束效果
+      // 車頭燈錐形光束效果
       final lightBeamPaint = Paint()
         ..shader = RadialGradient(
           colors: [
-            Colors.yellow.withOpacity(0.3),
+            Colors.yellow.withOpacity(0.4),
+            Colors.yellow.withOpacity(0.2),
+            Colors.yellow.withOpacity(0.1),
             Colors.yellow.withOpacity(0),
           ],
+          stops: const [0.0, 0.3, 0.7, 1.0],
         ).createShader(Rect.fromCircle(
-          center: Offset(size.width * 0.5, size.height * 0.2),
-          radius: size.width * 0.2,
+          center: Offset(size.width * 0.5, size.height * 0.05),
+          radius: size.width * 0.4,
         ));
 
-      // 整體光束
+      // 左車頭燈錐形光束
+      final leftBeamPath = Path()
+        ..moveTo(size.width * 0.36, size.height * 0.2) // 左車頭燈位置
+        ..lineTo(size.width * 0.25, size.height * 0.05) // 左上角
+        ..lineTo(size.width * 0.45, size.height * 0.05) // 右上角
+        ..close();
+
+      final leftBeamPaint = Paint()
+        ..shader = LinearGradient(
+          begin: Alignment.bottomCenter,
+          end: Alignment.topCenter,
+          colors: [
+            Colors.yellow.withOpacity(0.3),
+            Colors.yellow.withOpacity(0.1),
+            Colors.yellow.withOpacity(0),
+          ],
+          stops: const [0.0, 0.6, 1.0],
+        ).createShader(Rect.fromLTWH(0, 0, size.width, size.height));
+
+      canvas.drawPath(leftBeamPath, leftBeamPaint);
+
+      // 右車頭燈錐形光束
+      final rightBeamPath = Path()
+        ..moveTo(size.width * 0.64, size.height * 0.2) // 右車頭燈位置
+        ..lineTo(size.width * 0.55, size.height * 0.05) // 左上角
+        ..lineTo(size.width * 0.75, size.height * 0.05) // 右上角
+        ..close();
+
+      final rightBeamPaint = Paint()
+        ..shader = LinearGradient(
+          begin: Alignment.bottomCenter,
+          end: Alignment.topCenter,
+          colors: [
+            Colors.yellow.withOpacity(0.3),
+            Colors.yellow.withOpacity(0.1),
+            Colors.yellow.withOpacity(0),
+          ],
+          stops: const [0.0, 0.6, 1.0],
+        ).createShader(Rect.fromLTWH(0, 0, size.width, size.height));
+
+      canvas.drawPath(rightBeamPath, rightBeamPaint);
+
+      // 整體環境光效果
       canvas.drawCircle(
-        Offset(size.width * 0.5, size.height * 0.1),
-        size.width * 0.3,
+        Offset(size.width * 0.5, size.height * 0.05),
+        size.width * 0.35,
         lightBeamPaint,
       );
     }
