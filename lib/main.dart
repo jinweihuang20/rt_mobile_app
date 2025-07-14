@@ -57,6 +57,8 @@ class _RCControllerPageState extends State<RCControllerPage>
   final _isHeadlightOn = ValueNotifier<bool>(false);
   final _steeringDirection = ValueNotifier<String>('無');
   final _movementDirection = ValueNotifier<String>('停止');
+  final _isHeadlightAnimating = ValueNotifier<bool>(false); // 防止動畫期間操作按鈕
+  final _entranceHeadlightState = ValueNotifier<bool>(false); // 進場動畫專用的車頭燈狀態
   final Map<String, ValueNotifier<bool>> _buttonStates = {};
   final Map<String, AnimationController> _scaleControllers = {};
 
@@ -123,6 +125,9 @@ class _RCControllerPageState extends State<RCControllerPage>
         Future.delayed(const Duration(milliseconds: 200), () {
           _controlsController.forward();
         });
+
+        // 車子到位後閃兩下車頭燈
+        _flashHeadlights();
       });
     });
   }
@@ -132,6 +137,8 @@ class _RCControllerPageState extends State<RCControllerPage>
     _isHeadlightOn.dispose();
     _steeringDirection.dispose();
     _movementDirection.dispose();
+    _isHeadlightAnimating.dispose();
+    _entranceHeadlightState.dispose();
     _carService.dispose();
     _entranceController.dispose();
     _controlsController.dispose();
@@ -179,8 +186,36 @@ class _RCControllerPageState extends State<RCControllerPage>
   }
 
   void _toggleHeadlight() {
+    // 如果正在播放車頭燈動畫，則不允許操作
+    if (_isHeadlightAnimating.value) {
+      return;
+    }
+
     _isHeadlightOn.value = !_isHeadlightOn.value;
     _carService.toggleHeadlight(_isHeadlightOn.value);
+  }
+
+  void _flashHeadlights() async {
+    // 設置動畫標誌，防止按鈕操作
+    _isHeadlightAnimating.value = true;
+
+    // 閃兩下車頭燈的動畫（僅視覺效果，不發送控制命令）
+    for (int i = 0; i < 2; i++) {
+      // 開啟車頭燈（僅進場動畫）
+      _entranceHeadlightState.value = true;
+
+      // 等待200毫秒
+      await Future.delayed(const Duration(milliseconds: 200));
+
+      // 關閉車頭燈（僅進場動畫）
+      _entranceHeadlightState.value = false;
+
+      // 等待300毫秒
+      await Future.delayed(const Duration(milliseconds: 300));
+    }
+
+    // 動畫完成，允許按鈕操作
+    _isHeadlightAnimating.value = false;
   }
 
   void _showSettings() {
@@ -265,6 +300,7 @@ class _RCControllerPageState extends State<RCControllerPage>
                 ),
                 child: CarVisualization(
                   isHeadlightOn: _isHeadlightOn,
+                  entranceHeadlightState: _entranceHeadlightState,
                   steeringDirection: _steeringDirection,
                   movementDirection: _movementDirection,
                   entranceAnimation: _entranceAnimation,

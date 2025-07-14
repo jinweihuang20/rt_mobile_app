@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 class CarVisualization extends StatelessWidget {
   final ValueNotifier<bool> isHeadlightOn;
+  final ValueNotifier<bool> entranceHeadlightState;
   final ValueNotifier<String> steeringDirection;
   final ValueNotifier<String> movementDirection;
   final Animation<double> entranceAnimation;
@@ -10,6 +11,7 @@ class CarVisualization extends StatelessWidget {
   const CarVisualization({
     super.key,
     required this.isHeadlightOn,
+    required this.entranceHeadlightState,
     required this.steeringDirection,
     required this.movementDirection,
     required this.entranceAnimation,
@@ -95,19 +97,25 @@ class CarVisualization extends StatelessWidget {
                   child: ValueListenableBuilder<bool>(
                     valueListenable: isHeadlightOn,
                     builder: (context, headlightOn, _) {
-                      return ValueListenableBuilder<String>(
-                        valueListenable: steeringDirection,
-                        builder: (context, steeringDir, _) {
-                          return Container(
-                            width: 180, // 車子視覺化寬度
-                            height: 260, // 車子視覺化高度
-                            padding: const EdgeInsets.all(1),
-                            child: CustomPaint(
-                              painter: CarPainter(
-                                isHeadlightOn: headlightOn,
-                                steeringDirection: steeringDir,
-                              ),
-                            ),
+                      return ValueListenableBuilder<bool>(
+                        valueListenable: entranceHeadlightState,
+                        builder: (context, entranceHeadlight, _) {
+                          return ValueListenableBuilder<String>(
+                            valueListenable: steeringDirection,
+                            builder: (context, steeringDir, _) {
+                              return Container(
+                                width: 180, // 車子視覺化寬度
+                                height: 260, // 車子視覺化高度
+                                padding: const EdgeInsets.all(1),
+                                child: CustomPaint(
+                                  painter: CarPainter(
+                                    isHeadlightOn:
+                                        headlightOn || entranceHeadlight,
+                                    steeringDirection: steeringDir,
+                                  ),
+                                ),
+                              );
+                            },
                           );
                         },
                       );
