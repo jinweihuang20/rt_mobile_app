@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/gestures.dart';
 
-class CarVisualization extends StatelessWidget {
+class CarVisualization extends StatefulWidget {
   final ValueNotifier<bool> isHeadlightOn;
   final ValueNotifier<bool> entranceHeadlightState;
   final ValueNotifier<String> steeringDirection;
@@ -19,18 +20,29 @@ class CarVisualization extends StatelessWidget {
   });
 
   @override
+  State<CarVisualization> createState() => _CarVisualizationState();
+}
+
+class _CarVisualizationState extends State<CarVisualization> {
+  double _scale = 1.0;
+  double _baseScale = 1.0;
+  double _minScale = 0.5;
+  double _maxScale = 2.0;
+
+  @override
   Widget build(BuildContext context) {
     return Column(
       children: [
         // 方向指示器
         ValueListenableBuilder<String>(
-          valueListenable: movementDirection,
+          valueListenable: widget.movementDirection,
           builder: (context, direction, _) {
             return AnimatedBuilder(
-              animation: directionIndicatorAnimation,
+              animation: widget.directionIndicatorAnimation,
               builder: (context, child) {
                 return Opacity(
-                  opacity: directionIndicatorAnimation.value.clamp(0.0, 1.0),
+                  opacity:
+                      widget.directionIndicatorAnimation.value.clamp(0.0, 1.0),
                   child: Container(
                     margin: const EdgeInsets.only(bottom: 12), // 減少邊距
                     padding: const EdgeInsets.symmetric(
@@ -88,38 +100,53 @@ class CarVisualization extends StatelessWidget {
         // 車子視覺化
         Expanded(
           child: AnimatedBuilder(
-            animation: entranceAnimation,
+            animation: widget.entranceAnimation,
             builder: (context, child) {
               return Transform.translate(
-                offset: Offset(0, 60 * (1 - entranceAnimation.value)), // 減少初始偏移
+                offset: Offset(
+                    0, 60 * (1 - widget.entranceAnimation.value)), // 減少初始偏移
                 child: Opacity(
-                  opacity: entranceAnimation.value.clamp(0.0, 1.0),
-                  child: ValueListenableBuilder<bool>(
-                    valueListenable: isHeadlightOn,
-                    builder: (context, headlightOn, _) {
-                      return ValueListenableBuilder<bool>(
-                        valueListenable: entranceHeadlightState,
-                        builder: (context, entranceHeadlight, _) {
-                          return ValueListenableBuilder<String>(
-                            valueListenable: steeringDirection,
-                            builder: (context, steeringDir, _) {
-                              return Container(
-                                width: 180, // 車子視覺化寬度
-                                height: 260, // 車子視覺化高度
-                                padding: const EdgeInsets.all(1),
-                                child: CustomPaint(
-                                  painter: CarPainter(
-                                    isHeadlightOn:
-                                        headlightOn || entranceHeadlight,
-                                    steeringDirection: steeringDir,
-                                  ),
-                                ),
+                  opacity: widget.entranceAnimation.value.clamp(0.0, 1.0),
+                  child: GestureDetector(
+                    onScaleStart: (details) {
+                      _baseScale = _scale;
+                    },
+                    onScaleUpdate: (details) {
+                      setState(() {
+                        _scale = (_baseScale * details.scale)
+                            .clamp(_minScale, _maxScale);
+                      });
+                    },
+                    child: Transform.scale(
+                      scale: _scale,
+                      child: ValueListenableBuilder<bool>(
+                        valueListenable: widget.isHeadlightOn,
+                        builder: (context, headlightOn, _) {
+                          return ValueListenableBuilder<bool>(
+                            valueListenable: widget.entranceHeadlightState,
+                            builder: (context, entranceHeadlight, _) {
+                              return ValueListenableBuilder<String>(
+                                valueListenable: widget.steeringDirection,
+                                builder: (context, steeringDir, _) {
+                                  return Container(
+                                    width: 180, // 車子視覺化寬度
+                                    height: 260, // 車子視覺化高度
+                                    padding: const EdgeInsets.all(1),
+                                    child: CustomPaint(
+                                      painter: CarPainter(
+                                        isHeadlightOn:
+                                            headlightOn || entranceHeadlight,
+                                        steeringDirection: steeringDir,
+                                      ),
+                                    ),
+                                  );
+                                },
                               );
                             },
                           );
                         },
-                      );
-                    },
+                      ),
+                    ),
                   ),
                 ),
               );
