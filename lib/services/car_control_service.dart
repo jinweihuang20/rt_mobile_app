@@ -72,7 +72,7 @@ class CarControlService {
 
   // 前進
   Future<void> moveForward() async {
-    await _sendCommand('RTCar/move?deviceID=endpoint-demo', {
+    await _sendCommand('RTCar/Forward?deviceID=endpoint-demo', {
       'command': CarCommand.forward.name,
       'action': 'start',
     });
@@ -80,7 +80,7 @@ class CarControlService {
 
   // 後退
   Future<void> moveBackward() async {
-    await _sendCommand('RTCar/move?deviceID=endpoint-demo', {
+    await _sendCommand('RTCar/Backward?deviceID=endpoint-demo', {
       'command': CarCommand.backward.name,
       'action': 'start',
     });
