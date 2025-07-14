@@ -48,7 +48,8 @@ class RCControllerPage extends StatefulWidget {
   State<RCControllerPage> createState() => _RCControllerPageState();
 }
 
-class _RCControllerPageState extends State<RCControllerPage> with TickerProviderStateMixin {
+class _RCControllerPageState extends State<RCControllerPage>
+    with TickerProviderStateMixin {
   final _carService = CarControlService();
   final _isHeadlightOn = ValueNotifier<bool>(false);
   final _steeringDirection = ValueNotifier<String>('無');
@@ -207,62 +208,88 @@ class _RCControllerPageState extends State<RCControllerPage> with TickerProvider
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text(
-          'RC Car Controller',
-          style: TextStyle(
-            fontWeight: FontWeight.w600,
-            letterSpacing: 0.5,
+      body: Stack(
+        children: [
+          // 背景網格
+          CustomPaint(
+            size: Size.infinite,
+            painter: GridPainter(),
           ),
-        ),
-        backgroundColor: Theme.of(context).colorScheme.surface,
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.settings),
-            onPressed: _showSettings,
-          ),
-          const SizedBox(width: 8),
-        ],
-      ),
-      body: SafeArea(
-        bottom: true,
-        child: Stack(
-          children: [
-            // 背景網格
-            CustomPaint(
-              size: Size.infinite,
-              painter: GridPainter(),
-            ),
-            // 車子視覺化
-            Center(
-              child: _buildCarVisualization(),
-            ),
-            Positioned(
-              left: 20,
-              bottom: 10,
-              child: _buildMovementController(),
-            ),
-            Positioned(
-              right: 20,
-              bottom: 10,
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  _buildHeadlightControl(),
-                  const SizedBox(height: 16), // 稍微縮小間距
-                  _buildTurnController(),
-                ],
+          // 設定按鈕
+          Positioned(
+            top: 20,
+            right: 20,
+            child: Container(
+              decoration: BoxDecoration(
+                color: const Color(0xFF1E1E1E).withOpacity(0.8),
+                borderRadius: BorderRadius.circular(25),
+                border: Border.all(
+                  color: const Color(0xFF2D2D2D),
+                  width: 1.5,
+                ),
+              ),
+              child: IconButton(
+                icon: const Icon(Icons.settings, color: Colors.white),
+                onPressed: _showSettings,
               ),
             ),
-          ],
-        ),
+          ),
+          // 車子視覺化 - 延伸至螢幕上下
+          Positioned(
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            child: Center(
+              child: Container(
+                width: 200, // 固定寬度
+                height: double.infinity, // 延伸至螢幕上下
+                margin: const EdgeInsets.symmetric(horizontal: 20), // 左右邊距
+                decoration: BoxDecoration(
+                  color: const Color.fromARGB(255, 36, 36, 36),
+                  border: Border.all(
+                    color: const Color.fromARGB(255, 45, 45, 45),
+                    width: 2,
+                  ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: const Color.fromARGB(255, 31, 31, 31)
+                          .withOpacity(0.3),
+                      blurRadius: 10,
+                      offset: const Offset(0, 4),
+                    ),
+                  ],
+                ),
+                child: _buildCarVisualization(),
+              ),
+            ),
+          ),
+          // 左方控制項目
+          Positioned(
+            left: 60,
+            bottom: 30, // 往下靠，符合手部操作範圍
+            child: _buildMovementController(),
+          ),
+          // 右方控制項目
+          Positioned(
+            right: 20,
+            bottom: 30, // 往下靠，符合手部操作範圍
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                _buildHeadlightControl(),
+                const SizedBox(height: 20),
+                _buildTurnController(),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }
 
   Widget _buildCarVisualization() {
     return Column(
-      mainAxisSize: MainAxisSize.min, // 確保 Column 只取所需的最小空間
       children: [
         // 方向指示器
         ValueListenableBuilder<String>(
@@ -275,7 +302,8 @@ class _RCControllerPageState extends State<RCControllerPage> with TickerProvider
                   opacity: _directionIndicatorAnimation.value.clamp(0.0, 1.0),
                   child: Container(
                     margin: const EdgeInsets.only(bottom: 12), // 減少邊距
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6), // 減少內邊距
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 12, vertical: 6), // 減少內邊距
                     decoration: BoxDecoration(
                       color: const Color(0xFF1E1E1E).withOpacity(0.8),
                       borderRadius: BorderRadius.circular(12),
@@ -288,7 +316,9 @@ class _RCControllerPageState extends State<RCControllerPage> with TickerProvider
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         Icon(
-                          direction == '前進' ? Icons.arrow_upward : Icons.arrow_downward,
+                          direction == '前進'
+                              ? Icons.arrow_upward
+                              : Icons.arrow_downward,
                           color: Colors.blue,
                           size: 18, // 縮小圖標
                         ),
@@ -325,58 +355,47 @@ class _RCControllerPageState extends State<RCControllerPage> with TickerProvider
           },
         ),
         // 車子視覺化
-        AnimatedBuilder(
-          animation: _entranceAnimation,
-          builder: (context, child) {
-            return Transform.translate(
-              offset: Offset(0, 60 * (1 - _entranceAnimation.value)), // 減少初始偏移
-              child: Opacity(
-                opacity: _entranceAnimation.value.clamp(0.0, 1.0),
-                child: ValueListenableBuilder<bool>(
-                  valueListenable: _isHeadlightOn,
-                  builder: (context, isHeadlightOn, _) {
-                    return ValueListenableBuilder<String>(
-                      valueListenable: _steeringDirection,
-                      builder: (context, steeringDirection, _) {
-                        return Container(
-                          width: 180, // 稍微縮小車子容器
-                          height: 260,
-                          decoration: BoxDecoration(
-                            color: const Color.fromARGB(255, 36, 36, 36),
-                            borderRadius: BorderRadius.circular(20),
-                            border: Border.all(
-                              color: const Color.fromARGB(255, 45, 45, 45),
-                              width: 2,
-                            ),
-                            boxShadow: [
-                              BoxShadow(
-                                color: const Color.fromARGB(255, 31, 31, 31).withOpacity(0.3),
-                                blurRadius: 10,
-                                offset: const Offset(0, 4),
+        Expanded(
+          child: AnimatedBuilder(
+            animation: _entranceAnimation,
+            builder: (context, child) {
+              return Transform.translate(
+                offset:
+                    Offset(0, 60 * (1 - _entranceAnimation.value)), // 減少初始偏移
+                child: Opacity(
+                  opacity: _entranceAnimation.value.clamp(0.0, 1.0),
+                  child: ValueListenableBuilder<bool>(
+                    valueListenable: _isHeadlightOn,
+                    builder: (context, isHeadlightOn, _) {
+                      return ValueListenableBuilder<String>(
+                        valueListenable: _steeringDirection,
+                        builder: (context, steeringDirection, _) {
+                          return Container(
+                            width: 180, // 車子視覺化寬度
+                            height: 260, // 車子視覺化高度
+                            padding: const EdgeInsets.all(1),
+                            child: CustomPaint(
+                              painter: CarPainter(
+                                isHeadlightOn: isHeadlightOn,
+                                steeringDirection: steeringDirection,
                               ),
-                            ],
-                          ),
-                          padding: const EdgeInsets.all(1),
-                          child: CustomPaint(
-                            painter: CarPainter(
-                              isHeadlightOn: isHeadlightOn,
-                              steeringDirection: steeringDirection,
                             ),
-                          ),
-                        );
-                      },
-                    );
-                  },
+                          );
+                        },
+                      );
+                    },
+                  ),
                 ),
-              ),
-            );
-          },
+              );
+            },
+          ),
         ),
       ],
     );
   }
 
-  Widget _buildControlButton(String direction, IconData icon, bool isTurnButton) {
+  Widget _buildControlButton(
+      String direction, IconData icon, bool isTurnButton) {
     final buttonState = _getButtonState(direction);
     final scaleController = _scaleControllers[direction]!;
     final scaleAnimation = Tween<double>(
@@ -417,15 +436,20 @@ class _RCControllerPageState extends State<RCControllerPage> with TickerProvider
               width: 50, // 稍微縮小按鈕尺寸
               height: 50,
               decoration: BoxDecoration(
-                color: isPressed ? const Color(0xFF1E88E5) : const Color(0xFF2196F3),
+                color: isPressed
+                    ? const Color(0xFF1E88E5)
+                    : const Color(0xFF2196F3),
                 borderRadius: BorderRadius.circular(25),
                 border: Border.all(
-                  color: isPressed ? const Color(0xFF1565C0) : const Color(0xFF42A5F5),
+                  color: isPressed
+                      ? const Color(0xFF1565C0)
+                      : const Color(0xFF42A5F5),
                   width: 1.5,
                 ),
                 boxShadow: [
                   BoxShadow(
-                    color: const Color(0xFF1565C0).withOpacity(isPressed ? 0.3 : 0.5),
+                    color: const Color(0xFF1565C0)
+                        .withOpacity(isPressed ? 0.3 : 0.5),
                     blurRadius: isPressed ? 4 : 8,
                     offset: Offset(0, isPressed ? 2 : 4),
                     spreadRadius: isPressed ? 0 : 1,
@@ -663,8 +687,8 @@ class CarPainter extends CustomPainter {
     final cargoBox = Path()
       ..moveTo(size.width * 0.3, size.height * 0.4) // 左上
       ..lineTo(size.width * 0.7, size.height * 0.4) // 右上
-      ..lineTo(size.width * 0.7, size.height * 0.8) // 右下
-      ..lineTo(size.width * 0.3, size.height * 0.8) // 左下
+      ..lineTo(size.width * 0.7, size.height * 0.7) // 右下
+      ..lineTo(size.width * 0.3, size.height * 0.7) // 左下
       ..close();
 
     canvas.drawPath(cargoBox, cargoBoxPaint);
@@ -677,8 +701,8 @@ class CarPainter extends CustomPainter {
       ..strokeCap = StrokeCap.round;
 
     final cab = Path()
-      ..moveTo(size.width * 0.3, size.height * 0.15) // 左上
-      ..lineTo(size.width * 0.7, size.height * 0.15) // 右上
+      ..moveTo(size.width * 0.3, size.height * 0.2) // 左上
+      ..lineTo(size.width * 0.7, size.height * 0.2) // 右上
       ..lineTo(size.width * 0.7, size.height * 0.4) // 右下
       ..lineTo(size.width * 0.3, size.height * 0.4) // 左下
       ..close();
@@ -729,14 +753,14 @@ class CarPainter extends CustomPainter {
     // 左後輪（雙輪）
 
     canvas.save();
-    canvas.translate(size.width * 0.32, size.height * 0.67);
+    canvas.translate(size.width * 0.32, size.height * 0.6);
     _drawWheel(canvas, size.width * 0.05, wheelPaint);
     canvas.restore();
 
     // 右後輪（雙輪）
 
     canvas.save();
-    canvas.translate(size.width * 0.68, size.height * 0.67);
+    canvas.translate(size.width * 0.68, size.height * 0.6);
     _drawWheel(canvas, size.width * 0.05, wheelPaint);
     canvas.restore();
 
@@ -747,14 +771,14 @@ class CarPainter extends CustomPainter {
 
     // 左車頭燈
     canvas.drawCircle(
-      Offset(size.width * 0.36, size.height * 0.17),
+      Offset(size.width * 0.36, size.height * 0.2),
       size.width * 0.03,
       headlightPaint,
     );
 
     // 右車頭燈
     canvas.drawCircle(
-      Offset(size.width * 0.64, size.height * 0.17),
+      Offset(size.width * 0.64, size.height * 0.2),
       size.width * 0.03,
       headlightPaint,
     );
@@ -832,6 +856,7 @@ class CarPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(CarPainter oldDelegate) {
-    return oldDelegate.isHeadlightOn != isHeadlightOn || oldDelegate.steeringDirection != steeringDirection;
+    return oldDelegate.isHeadlightOn != isHeadlightOn ||
+        oldDelegate.steeringDirection != steeringDirection;
   }
 }
