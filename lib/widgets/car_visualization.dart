@@ -23,11 +23,53 @@ class CarVisualization extends StatefulWidget {
   State<CarVisualization> createState() => _CarVisualizationState();
 }
 
-class _CarVisualizationState extends State<CarVisualization> {
+class _CarVisualizationState extends State<CarVisualization>
+    with TickerProviderStateMixin {
   double _scale = 1.0;
   double _baseScale = 1.0;
   double _minScale = 0.5;
   double _maxScale = 2.0;
+
+  // Zoom in 動畫控制器
+  late final AnimationController _zoomController;
+  late final Animation<double> _zoomAnimation;
+
+  @override
+  void initState() {
+    super.initState();
+
+    // 初始化 zoom in 動畫
+    _zoomController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1000), // 增加動畫時間，讓變化更漸進
+    );
+
+    _zoomAnimation = Tween<double>(
+      begin: 1.0,
+      end: 1.10, // 更溫和的放大倍數
+    ).animate(CurvedAnimation(
+      parent: _zoomController,
+      curve: Curves.easeOutCubic, // 使用更漸進的曲線，開始慢，結束快
+    ));
+
+    // 監聽入場動畫完成，然後開始 zoom in 動畫
+    widget.entranceAnimation.addStatusListener((status) {
+      if (status == AnimationStatus.completed) {
+        // 延遲一小段時間後開始 zoom in 動畫
+        Future.delayed(const Duration(milliseconds: 300), () {
+          if (mounted) {
+            _zoomController.forward();
+          }
+        });
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _zoomController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -107,46 +149,55 @@ class _CarVisualizationState extends State<CarVisualization> {
                     0, 60 * (1 - widget.entranceAnimation.value)), // 減少初始偏移
                 child: Opacity(
                   opacity: widget.entranceAnimation.value.clamp(0.0, 1.0),
-                  child: GestureDetector(
-                    onScaleStart: (details) {
-                      _baseScale = _scale;
+                  child: AnimatedBuilder(
+                    animation: _zoomAnimation,
+                    builder: (context, child) {
+                      return Transform.scale(
+                        scale: _zoomAnimation.value,
+                        child: GestureDetector(
+                          onScaleStart: (details) {
+                            _baseScale = _scale;
+                          },
+                          onScaleUpdate: (details) {
+                            setState(() {
+                              _scale = (_baseScale * details.scale)
+                                  .clamp(_minScale, _maxScale);
+                            });
+                          },
+                          child: Transform.scale(
+                            scale: _scale,
+                            child: ValueListenableBuilder<bool>(
+                              valueListenable: widget.isHeadlightOn,
+                              builder: (context, headlightOn, _) {
+                                return ValueListenableBuilder<bool>(
+                                  valueListenable:
+                                      widget.entranceHeadlightState,
+                                  builder: (context, entranceHeadlight, _) {
+                                    return ValueListenableBuilder<String>(
+                                      valueListenable: widget.steeringDirection,
+                                      builder: (context, steeringDir, _) {
+                                        return Container(
+                                          width: 180, // 車子視覺化寬度
+                                          height: 260, // 車子視覺化高度
+                                          padding: const EdgeInsets.all(1),
+                                          child: CustomPaint(
+                                            painter: CarPainter(
+                                              isHeadlightOn: headlightOn ||
+                                                  entranceHeadlight,
+                                              steeringDirection: steeringDir,
+                                            ),
+                                          ),
+                                        );
+                                      },
+                                    );
+                                  },
+                                );
+                              },
+                            ),
+                          ),
+                        ),
+                      );
                     },
-                    onScaleUpdate: (details) {
-                      setState(() {
-                        _scale = (_baseScale * details.scale)
-                            .clamp(_minScale, _maxScale);
-                      });
-                    },
-                    child: Transform.scale(
-                      scale: _scale,
-                      child: ValueListenableBuilder<bool>(
-                        valueListenable: widget.isHeadlightOn,
-                        builder: (context, headlightOn, _) {
-                          return ValueListenableBuilder<bool>(
-                            valueListenable: widget.entranceHeadlightState,
-                            builder: (context, entranceHeadlight, _) {
-                              return ValueListenableBuilder<String>(
-                                valueListenable: widget.steeringDirection,
-                                builder: (context, steeringDir, _) {
-                                  return Container(
-                                    width: 180, // 車子視覺化寬度
-                                    height: 260, // 車子視覺化高度
-                                    padding: const EdgeInsets.all(1),
-                                    child: CustomPaint(
-                                      painter: CarPainter(
-                                        isHeadlightOn:
-                                            headlightOn || entranceHeadlight,
-                                        steeringDirection: steeringDir,
-                                      ),
-                                    ),
-                                  );
-                                },
-                              );
-                            },
-                          );
-                        },
-                      ),
-                    ),
                   ),
                 ),
               );
