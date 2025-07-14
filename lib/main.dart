@@ -9,6 +9,8 @@ void main() {
     DeviceOrientation.landscapeLeft,
     DeviceOrientation.landscapeRight,
   ]).then((_) {
+    // 隱藏狀態列，實現全螢幕模式
+    SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersive);
     runApp(const MyApp());
   });
 }
@@ -29,7 +31,7 @@ class MyApp extends StatelessWidget {
           error: Colors.red.shade700,
         ),
         useMaterial3: true,
-        scaffoldBackgroundColor: const Color(0xFF121212),
+        scaffoldBackgroundColor: const Color.fromARGB(255, 0, 0, 0),
         appBarTheme: const AppBarTheme(
           backgroundColor: Color.fromARGB(255, 90, 90, 90),
           foregroundColor: Colors.white,
@@ -242,14 +244,14 @@ class _RCControllerPageState extends State<RCControllerPage>
             bottom: 0,
             child: Center(
               child: Container(
-                width: 200, // 固定寬度
+                width: 300, // 固定寬度
                 height: double.infinity, // 延伸至螢幕上下
                 margin: const EdgeInsets.symmetric(horizontal: 20), // 左右邊距
                 decoration: BoxDecoration(
-                  color: const Color.fromARGB(255, 36, 36, 36),
+                  color: const Color.fromARGB(123, 32, 32, 32),
                   border: Border.all(
                     color: const Color.fromARGB(255, 45, 45, 45),
-                    width: 2,
+                    width: 1,
                   ),
                   boxShadow: [
                     BoxShadow(
@@ -640,7 +642,7 @@ class GridPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     final paint = Paint()
-      ..color = const Color(0xFF2D2D2D).withOpacity(0.2)
+      ..color = const Color.fromARGB(255, 129, 129, 129).withOpacity(0.2)
       ..strokeWidth = 1;
 
     const spacing = 30.0;
