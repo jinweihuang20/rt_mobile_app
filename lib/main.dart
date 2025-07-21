@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'services/car_control_service.dart';
-import 'services/car_commands.dart';
+import 'services/car_controller_interface.dart';
+import 'services/websocket_car_controller.dart';
+import 'services/http_car_controller.dart';
 import 'widgets/car_visualization.dart';
 
 void main() {
@@ -51,9 +52,8 @@ class RCControllerPage extends StatefulWidget {
   State<RCControllerPage> createState() => _RCControllerPageState();
 }
 
-class _RCControllerPageState extends State<RCControllerPage>
-    with TickerProviderStateMixin {
-  final _carService = CarControlService();
+class _RCControllerPageState extends State<RCControllerPage> with TickerProviderStateMixin {
+  late final CarControllerInterface _carController;
   final _isHeadlightOn = ValueNotifier<bool>(false);
   final _steeringDirection = ValueNotifier<String>('無');
   final _movementDirection = ValueNotifier<String>('停止');
@@ -77,6 +77,8 @@ class _RCControllerPageState extends State<RCControllerPage>
   @override
   void initState() {
     super.initState();
+    _initializeController();
+
     // 預先創建所有按鈕的動畫控制器
     for (final direction in ['上', '下', '左', '右']) {
       _scaleControllers[direction] = AnimationController(
@@ -132,14 +134,33 @@ class _RCControllerPageState extends State<RCControllerPage>
     });
   }
 
+  void _initializeController() {
+    // 這裡可以根據設定選擇使用哪種控制器
+    // _carController = WebSocketCarController();
+    _carController = HttpCarController();
+    _carController.initialize();
+
+    // 如果是 WebSocket 控制器，可以監聽連接狀態
+    if (_carController is WebSocketCarController) {
+      final wsController = _carController as WebSocketCarController;
+      wsController.connectionState.listen((state) {
+        print('連接狀態: $state');
+      });
+
+      wsController.messages.listen((message) {
+        print('收到消息: $message');
+      });
+    }
+  }
+
   @override
   void dispose() {
+    _carController.dispose();
     _isHeadlightOn.dispose();
     _steeringDirection.dispose();
     _movementDirection.dispose();
     _isHeadlightAnimating.dispose();
     _entranceHeadlightState.dispose();
-    _carService.dispose();
     _entranceController.dispose();
     _controlsController.dispose();
     _directionIndicatorController.dispose();
@@ -164,24 +185,24 @@ class _RCControllerPageState extends State<RCControllerPage>
       case '上':
         _movementDirection.value = '前進';
         _directionIndicatorController.forward();
-        _carService.moveForward();
+        _carController.moveForward();
       case '下':
         _movementDirection.value = '後退';
         _directionIndicatorController.forward();
-        _carService.moveBackward();
+        _carController.moveBackward();
       case '左':
         _steeringDirection.value = '左';
-        _carService.turnLeft();
+        _carController.turnLeft();
       case '右':
         _steeringDirection.value = '右';
-        _carService.turnRight();
+        _carController.turnRight();
       case '停止':
         _movementDirection.value = '停止';
         _directionIndicatorController.reverse();
-        _carService.stop();
+        _carController.stop();
       case '停止轉向':
         _steeringDirection.value = '無';
-        _carService.turnStop();
+        _carController.turnStop();
     }
   }
 
@@ -192,7 +213,7 @@ class _RCControllerPageState extends State<RCControllerPage>
     }
 
     _isHeadlightOn.value = !_isHeadlightOn.value;
-    _carService.toggleHeadlight(_isHeadlightOn.value);
+    _carController.toggleHeadlight(_isHeadlightOn.value);
   }
 
   void _flashHeadlights() async {
@@ -230,7 +251,7 @@ class _RCControllerPageState extends State<RCControllerPage>
           children: [
             const Text('更多設定選項即將推出...'),
             const SizedBox(height: 16),
-            Text('API 端點: ${CarControlService.baseUrl}'),
+            if (_carController is WebSocketCarController) Text('WebSocket: ${WebSocketCarController.defaultWsUrl}'),
           ],
         ),
         actions: [
@@ -291,8 +312,7 @@ class _RCControllerPageState extends State<RCControllerPage>
                   ),
                   boxShadow: [
                     BoxShadow(
-                      color: const Color.fromARGB(255, 31, 31, 31)
-                          .withOpacity(0.3),
+                      color: const Color.fromARGB(255, 31, 31, 31).withOpacity(0.3),
                       blurRadius: 10,
                       offset: const Offset(0, 4),
                     ),
@@ -333,8 +353,7 @@ class _RCControllerPageState extends State<RCControllerPage>
     );
   }
 
-  Widget _buildControlButton(
-      String direction, IconData icon, bool isTurnButton) {
+  Widget _buildControlButton(String direction, IconData icon, bool isTurnButton) {
     final buttonState = _getButtonState(direction);
     final scaleController = _scaleControllers[direction]!;
     final scaleAnimation = Tween<double>(
@@ -375,20 +394,15 @@ class _RCControllerPageState extends State<RCControllerPage>
               width: 50, // 稍微縮小按鈕尺寸
               height: 50,
               decoration: BoxDecoration(
-                color: isPressed
-                    ? const Color(0xFF1E88E5)
-                    : const Color(0xFF2196F3),
+                color: isPressed ? const Color(0xFF1E88E5) : const Color(0xFF2196F3),
                 borderRadius: BorderRadius.circular(25),
                 border: Border.all(
-                  color: isPressed
-                      ? const Color(0xFF1565C0)
-                      : const Color(0xFF42A5F5),
+                  color: isPressed ? const Color(0xFF1565C0) : const Color(0xFF42A5F5),
                   width: 1.5,
                 ),
                 boxShadow: [
                   BoxShadow(
-                    color: const Color(0xFF1565C0)
-                        .withOpacity(isPressed ? 0.3 : 0.5),
+                    color: const Color(0xFF1565C0).withOpacity(isPressed ? 0.3 : 0.5),
                     blurRadius: isPressed ? 4 : 8,
                     offset: Offset(0, isPressed ? 2 : 4),
                     spreadRadius: isPressed ? 0 : 1,

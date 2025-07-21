@@ -72,50 +72,32 @@ class CarControlService {
 
   // 前進
   Future<void> moveForward() async {
-    await _sendCommand('RTCar/Forward?deviceID=endpoint-demo', {
-      'command': CarCommand.forward.name,
-      'action': 'start',
-    });
+    await _sendCommand('RTCar/Forward?deviceID=endpoint-demo', {});
   }
 
   // 後退
   Future<void> moveBackward() async {
-    await _sendCommand('RTCar/Backward?deviceID=endpoint-demo', {
-      'command': CarCommand.backward.name,
-      'action': 'start',
-    });
+    await _sendCommand('RTCar/Backward?deviceID=endpoint-demo', {});
   }
 
   // 左轉
   Future<void> turnLeft() async {
-    await _sendCommand('RTCar/Left?deviceID=endpoint-demo', {
-      'command': CarCommand.left.name,
-      'action': 'start',
-    });
+    await _sendCommand('RTCar/Left?deviceID=endpoint-demo', {});
   }
 
   // 右轉
   Future<void> turnRight() async {
-    await _sendCommand('RTCar/Right?deviceID=endpoint-demo', {
-      'command': CarCommand.right.name,
-      'action': 'start',
-    });
+    await _sendCommand('RTCar/Right?deviceID=endpoint-demo', {});
   }
 
   // 停止轉向
   Future<void> turnStop() async {
-    await _sendCommand('RTCar/NoTurn?deviceID=endpoint-demo', {
-      'command': CarCommand.turnStop.name,
-      'action': 'start',
-    });
+    await _sendCommand('RTCar/NoTurn?deviceID=endpoint-demo', {});
   }
 
   // 停止
   Future<void> stop() async {
-    await _sendCommand('RTCar/stop?deviceID=endpoint-demo', {
-      'command': CarCommand.stop.name,
-      'action': 'stop',
-    });
+    await _sendCommand('RTCar/stop?deviceID=endpoint-demo', {});
   }
 
   // 控制車頭燈
